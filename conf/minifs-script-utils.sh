@@ -16,7 +16,7 @@ check_host_commands() {
 }
 
 hostcheck_commands() {
-	for name in $*; do 
+	for name in $*; do
 		local cmd=$(which $name)
 		if [ ! -x "$cmd" ]; then
 			echo "### ERROR $PACKAGE needs $name"
@@ -40,8 +40,8 @@ minifs_locate_config_path() {
 	local flags=${2-0}
 	local all=$[ $flags & 1 ]
 	local verbose=$[ $flags & 2 ]
-	
-	for ro in "$CONF_BASE" $(minifs_path_split ""); do 
+
+	for ro in "$CONF_BASE" $(minifs_path_split ""); do
 		for di in distro "board/$MINIFS_BOARD" arch/$TARGET_META_ARCH arch/$TARGET_ARCH ""; do
 			for pd in $MINIFS_BOARD_ROLE ""; do
 				local try="$ro/$di/$pd/$file"
@@ -70,7 +70,7 @@ optional_one_of () {
 		if declare -F $f >/dev/null; then
 			# echo optional-one-of running $f
 			$f
-			return
+			return $?
 		fi
 	done
 }
@@ -187,7 +187,7 @@ deploy() {
 		{
 			rm -f $turd
 			echo "$@" >$LOGFILE
-			"$@" && touch $turd 
+			"$@" && touch $turd
 		} >>$LOGFILE 2>&1 || {
 			echo "#### ** ERROR ** Deploying $PACKAGE"
 			echo "     Check " $(get_package_dir $PACKAGE)/$LOGFILE
@@ -227,7 +227,7 @@ get_installed_stuff() {
 '
 function ppr(s) {
 	if (substr(s, length(s)) == "#") return;
-	if (ss != "") gsub(ss,"",s); 
+	if (ss != "") gsub(ss,"",s);
 	print s;
 }
 {
@@ -236,7 +236,7 @@ function ppr(s) {
 	if ($2=="symlink" && match($4,pp)) { l[$4]=$4; }
 }
 END { for (p in l) ppr(p); }
-' 
+'
 	fi
 }
 
@@ -283,10 +283,10 @@ dump_depends() {
 	for pack in $all; do
 		deps=$(hget $pack depends)
 		echo \"$pack\"
-		for d in $deps; do 
+		for d in $deps; do
 			echo "\"$pack\" -> \"$d\""
 		done
-	done	
+	done
 	echo '}'
 	} >minifs_deps.dot
 	dot -Tpdf -ominifs_deps.pdf minifs_deps.dot
@@ -308,12 +308,12 @@ package_register() {
 # these are tools that are needed even before we start decompressing stuff
 
 host-setup() {
-	unset CC CXX GCC LD CFLAGS CXXFLAGS CPPFLAGS LDFLAGS ACLOCAL ; 
+	unset CC CXX GCC LD CFLAGS CXXFLAGS CPPFLAGS LDFLAGS ACLOCAL LIBTOOL;
 	unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR LD_LIBRARY_PATH INSTALL;
 	export INSTALL=/usr/bin/install
 }
 
-hset host-patch url "http://ftp.de.debian.org/debian/pool/main/p/patch/patch_2.6.1.orig.tar.gz"
+hset host-patch url "http://ftp.de.debian.org/debian/pool/main/p/patch/patch_2.7.6.orig.tar.xz"
 hset host-patch name "patch"
 
 build-patch() {
@@ -339,11 +339,11 @@ compile-host-tools() {
 		base=${url/*\//}
 		if [ ! -f "$BASE/download/$base" ]; then
 			echo "** Downloading $base"
-			wget -q "$url" -O "$BASE"/download/$base || \
+			$WGET "$url" -O "$BASE"/download/$base || \
 				exit 1
 		fi
 		rm -rf $BUILD/host-$name && mkdir -p $BUILD/host-$name
-		tar zx -f "$BASE"/download/$base --strip 1  -C $BUILD/host-$name || exit 1
+		tar xf "$BASE"/download/$base --strip 1  -C $BUILD/host-$name || exit 1
 		echo "** Building host $name"
 		(
 			host-setup

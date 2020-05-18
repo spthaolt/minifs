@@ -1,26 +1,18 @@
 
-#echo GCC PATH = $GCC
+echo GCC PATH = $GCC
+echo COMMAND_PACKAGE $COMMAND_PACKAGE
 if [ ! -f "$GCC" -o "$COMMAND_PACKAGE" == "crosstools" ]; then
 	PACKAGES+=" crosstools"
-	NEED_CROSSTOOLS="crosstools"
 	TARGET_PACKAGES+=" crosstools"
 fi
 
 CROSSTOOL_JOBS=".$MINIFS_JOBS"
 
-#hset crosstools version "1.22.0"
-#hset crosstools url "http://ymorin.is-a-geek.org/download/crosstool-ng/crosstool-ng-$(hget crosstools version).tar.bz2"
+hset crosstools url "git!https://github.com/crosstool-ng/crosstool-ng.git#crosstool-ng-$MINIFS_BOARD.tar.bz2"
+#hset crosstools git-ref 'fd9fe523b22cb6281f26081232a3f8f3aee7fda1'
+hset crosstools git-ref 'b2151f1dba2b20c310adfe7198e461ec4469172b'
 
-#hset crosstools url "git!https://github.com/crosstool-ng/crosstool-ng.git#crosstol-ng-$MINIFS_BOARD.tar.bz2"
-#hset crosstools git-ref 'da3f8c4ec5345b709a330eebab01cd62c574295d'
-
-#hset crosstools version "1.23.0"
-#hset crosstools url "http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-$(hget crosstools version).tar.bz2"
-
-hset crosstools url "git!https://github.com/crosstool-ng/crosstool-ng.git#crosstol-ng-$MINIFS_BOARD.tar.bz2"
-hset crosstools git-ref 'fd9fe523b22cb6281f26081232a3f8f3aee7fda1'
-
-hset crosstools depends "linux-headers "
+hset crosstools depends "host-libtool host-automake"
 
 # ${HOME}/x-tools/${CT_TARGET}
 # MINIFS_TOOLCHAIN/${CT_TARGET}
@@ -44,7 +36,7 @@ patch-crosstools() {
 
 reset-crossrools-env() {
 	export PATH="$BASE_PATH"
-	unset CC CXX GCC LD CFLAGS CXXFLAGS CPPFLAGS LDFLAGS ACLOCAL ;
+	unset CC CXX GCC LD CFLAGS CXXFLAGS CPPFLAGS LDFLAGS ACLOCAL LIBTOOL;
 	unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR LD_LIBRARY_PATH ;
 }
 
@@ -68,7 +60,7 @@ configure-crosstools() {
 		fi
 		configure ./configure --prefix="$STAGING_TOOLS" &&
 			$MAKE &&
-			$MAKE install
+			$MAKE install || exit 1
 	)
 
 	mkdir -p "$TOOLCHAIN_BUILD"
@@ -118,10 +110,11 @@ configure-crosstools() {
 		done
 
 		cp config_crosstools.conf .config
-
 		"$STAGING_TOOLS"/bin/ct-ng show-tuple
-		"$STAGING_TOOLS"/bin/ct-ng build$CROSSTOOL_JOBS
-	)
+		"$STAGING_TOOLS"/bin/ct-ng build$CROSSTOOL_JOBS || exit 1
+	); ret=$?
+
+	return $ret
 }
 
 compile-crosstools() {
@@ -132,7 +125,8 @@ compile-crosstools() {
 install-crosstools() {
 	GCC=$(which $TARGET_FULL_ARCH-gcc)
 	if [ ! -f "$GCC" ]; then
-		echo "GCC doesn't exists!! $GCC"
+		echo "ERROR: TARGET_FULL_ARCH-gcc doesn't exists!! $GCC"
+		echo PATH= $PATH
 		exit 1
 	fi
 	log_install echo Done
@@ -140,7 +134,7 @@ install-crosstools() {
 
 
 PACKAGES+=" host-libtool"
-hset host-libtool url "http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz"
+hset host-libtool url "http://ftp.gnu.org/gnu/libtool/libtool-2.4.6.tar.gz"
 hset host-libtool destdir "/"
 hset host-libtool depends "host-installwatch"
 
@@ -154,7 +148,7 @@ configure-host-libtool() {
 			--prefix=$STAGING_TOOLS \
 			--build=$(gcc -dumpmachine) \
 			--host=$TARGET_SMALL_ARCH \
-			--program-prefix="$TARGET_FULL_ARCH"- CC=$TARGET_FULL_ARCH-gcc
+			--program-prefix="$TARGET_FULL_ARCH"- #CC=$TARGET_FULL_ARCH-gcc
 	) || exit 1
 }
 install-host-libtool() {
@@ -190,7 +184,7 @@ configure-host-autoconf() {
 		configure ./configure \
 			--prefix=$STAGING_TOOLS \
 			--build=$(gcc -dumpmachine) \
-			--host=$TARGET_FULL_ARCH
+			--host=$TARGET_SMALL_ARCH
 	) || exit 1
 }
 
@@ -254,8 +248,7 @@ deploy-catchsegv() {
 }
 
 PACKAGES+=" strace"
-#hset strace url "http://kent.dl.sourceforge.net/project/strace/strace/4.5.19/strace-4.5.19.tar.bz2"
-hset strace url "http://downloads.sourceforge.net/project/strace/strace/4.7/strace-4.7.tar.xz"
+hset strace url "http://downloads.sourceforge.net/project/strace/strace/4.9/strace-4.9.tar.xz"
 hset strace depends "busybox"
 
 configure-strace() {

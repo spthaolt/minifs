@@ -311,10 +311,18 @@ so_file_t * elf_read_dynamic(const char * file)
 	close(fd);
 
 	if (!res->so_name && !res->so_needed) {
-		printf("%s %s: so_name %p, so_needed %p !!\n", __func__, file, res->so_name, res->so_needed);
-
-		free(res);
-		res = NULL;
+#if 0
+		// if there is no SO_NAME, create one with the filename itself
+		if (!res->so_name) {
+			char *slash = rindex(file, '/');
+			printf("slash '%s'\n", slash);
+			res->so_name = so_new(res->so_name, DT_SONAME, slash ? slash+1 : file);
+			printf("%s %s: no so_name, using '%s'\n", __func__, file, res->so_name);
+		}
+//		printf("%s %s: so_name %p, so_needed %p !!\n", __func__, file, res->so_name, res->so_needed);
+//		free(res);
+//		res = NULL;
+#endif
 	}
 	return res;
 }
@@ -327,6 +335,7 @@ so_dir_t * elf_scandir(so_dir_t * base, const char * dirname, int flags)
 	DIR * d = opendir(dirname);
 	if (!d)
 		return base;
+	printf("%s %s\n", __func__, dirname);
 
 	so_dir_t * res = malloc(sizeof(so_dir_t));
 	memset(res, 0, sizeof(so_dir_t));
@@ -411,7 +420,7 @@ int purge_unused_libs(so_dir_t * dir)
 				so_file_t *f = d->loaded->file[fi];
 
 				if (f->so_name && (!f->used || !f->used->count) && !(f->flags & FILE_LOCK)) {
-				//	printf("Library %s is not used\n", f->name);
+					printf("Library %s is not used\n", f->name);
 					d->purged = so_filelist_add(d->purged, f);
 					so_filelist_remove(d->loaded, f);
 					cleared++;
@@ -461,15 +470,18 @@ int purge_orphan_symlinks(so_dir_t * dir)
 					perror(f->name);
 					die++;
 				} else {
-					char dpath[4096];
-					out[ln] = 0;
-					sprintf(dpath, "%s/%s", d->name, out);
-					struct stat o;
-					if (lstat(dpath, &o) == -1) {
-					//	printf("DANGLING %s -> %s\n", f->name, out);
-						die++;
+					if (out[0] == '/') {
+						printf("SKIPPING Bogus absolute path %s -> %s\n", f->name, out);
+					} else {
+						char dpath[4096];
+						out[ln] = 0;
+						sprintf(dpath, "%s/%s", d->name, out);
+						struct stat o;
+						if (lstat(dpath, &o) == -1) {
+//							printf("DANGLING %s -> %s\n", f->name, out);
+							die++;
+						}
 					}
-
 				}
 				if (die) {
 					cleared++;

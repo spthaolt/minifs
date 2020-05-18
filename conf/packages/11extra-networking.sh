@@ -1,10 +1,16 @@
 
+PACKAGES+=" libnftnl"
+hset url libnftnl "https://netfilter.org/projects/libnftnl/files/libnftnl-1.1.1.tar.bz2"
+
 # iptables http://www.netfilter.org/projects/iptables/downloads.html
 PACKAGES+=" iptables"
-hset iptables url "http://ftp.de.debian.org/debian/pool/main/i/iptables/iptables_1.4.14.orig.tar.bz2"
+#hset iptables url "http://ftp.de.debian.org/debian/pool/main/i/iptables/iptables_1.4.14.orig.tar.bz2"
+hset iptables url "https://netfilter.org/projects/iptables/files/iptables-1.8.0.tar.bz2"
+hset iptables depends "libnftnl"
 
 configure-iptables() {
-	configure-generic
+	configure-generic \
+		--disable-nftables
 	#--disable-ipv6
 }
 deploy-iptables() {
@@ -64,6 +70,11 @@ deploy-openssh-local() {
 	mkdir -p $ROOTFS/etc/ssh/ $ROOTFS/var/empty/ && \
 		cp $CONFIG/ssh_host_* $ROOTFS/etc/ssh/ &&
 			chmod 0600 $ROOTFS/etc/ssh/ssh_host_*_key
+	sed -i \
+		-e 's|#PermitRootLogin.*|PermitRootLogin yes|' \
+		-e 's|#PasswordAuthentication.*|PasswordAuthentication yes|' \
+		-e 's|#MaxAuthTries.*|MaxAuthTries 10|' \
+		$ROOTFS/etc/ssh/sshd_config
 }
 deploy-openssh() {
 	deploy deploy-openssh-local
@@ -200,3 +211,5 @@ install-dma() {
 deploy-dma() {
 	deploy deploy_binaries
 }
+
+

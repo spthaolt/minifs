@@ -1,32 +1,39 @@
-#PACKAGES+=" alsadrivers"
-#hset alsadrivers url "ftp://ftp.alsa-project.org/pub/driver/alsa-driver-1.0.29.tar.bz2"
-#hset alsadrivers depends "linux-modules"
 
 PACKAGES+=" libalsa"
-hset libalsa url "ftp://ftp.alsa-project.org/pub/lib/alsa-lib-1.1.5.tar.bz2"
-#hset libalsa depends "alsadrivers"
+hset libalsa url "ftp://ftp.alsa-project.org/pub/lib/alsa-lib-1.1.8.tar.bz2"
 
+configure-libalsa-local() {
+	rm -f config.sub; automake --add-missing
+	configure-generic-local --disable-python
+}
 configure-libalsa() {
-	configure-generic --disable-python
+	configure configure-libalsa-local
 }
 
-deploy-libalsa() {
+deploy-libalsa-local() {
 	mkdir -p "$ROOTFS"/var/lib/alsa
-	deploy rsync -a "$STAGING_USR"/share/alsa "$ROOTFS"/usr/share/
+	ln -sf sh /etc/ash
+	rsync -a "$STAGING_USR"/share/alsa "$ROOTFS"/usr/share/
+}
+deploy-libalsa() {
+	deploy deploy-libalsa-local
 }
 
 PACKAGES+=" alsaplugins"
-hset alsaplugins url "ftp://ftp.alsa-project.org/pub/plugins/alsa-plugins-1.1.5.tar.bz2"
+hset alsaplugins url "ftp://ftp.alsa-project.org/pub/plugins/alsa-plugins-1.1.8.tar.bz2"
 hset alsaplugins depends "libalsa"
 
 PACKAGES+=" alsautils"
-hset alsautils url "ftp://ftp.alsa-project.org/pub/utils/alsa-utils-1.1.5.tar.bz2"
+hset alsautils url "ftp://ftp.alsa-project.org/pub/utils/alsa-utils-1.1.8.tar.bz2"
 hset alsautils depends "libalsa libncurses"
 
-configure-alsautils() {
-	configure-generic --disable-xmlto --with-curses=ncurses
+configure-alsautils-local() {
+	rm -f config.sub; automake --add-missing
+	configure-generic-local --disable-xmlto --with-curses=ncurses
 }
-
+configure-alsautils() {
+	configure configure-alsautils-local
+}
 deploy-alsautils() {
 	deploy deploy_binaries
 }
@@ -48,7 +55,7 @@ configure-lame() {
 }
 
 PACKAGES+=" twolame"
-hset twolame url "http://cznic.dl.sourceforge.net/project/twolame/twolame/0.3.13/twolame-0.3.13.tar.gz"
+hset twolame url "https://vorboss.dl.sourceforge.net/project/twolame/twolame/0.3.13/twolame-0.3.13.tar.gz"
 
 deploy-twolame() {
 	deploy deploy_binaries
